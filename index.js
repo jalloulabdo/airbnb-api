@@ -1,8 +1,8 @@
 const express = require("express");
 const app = express();
-var cors = require("cors");
+const cors = require("cors");
 require("dotenv").config();
-const { default: mongoose } = require("mongoose");
+const mongoose = require("mongoose");
 const UserModel = require("./models/User");
 const Place = require("./models/Place");
 const Booking = require("./models/Booking");
@@ -31,8 +31,8 @@ mongoose.connect(process.env.MONGO_URL);
 
 function getUserDataFromReq(req) {
   return new Promise((resolve, reject) => {
-    jwt.verify(req.cookies.token, jwtSecret, {}, async (err, user) => {
-      if (err) throw err;
+    jwt.verify(req.cookies.token, jwtSecret, {}, (err, user) => {
+      if (err) return reject(err);
       resolve(user);
     });
   });
@@ -65,13 +65,13 @@ app.post("/login", async (req, res) => {
       if (passOk) {
         jwt.sign({ email: user.email, id: user._id }, jwtSecret, {}, (err, token) => {
           if (err) throw err;
-          res.cookie("token", token).json(user);
+          res.cookie("token", token, { httpOnly: true }).json(user);
         });
       } else {
-        res.status(422).json("password not correct!");
+        res.status(422).json("Password not correct!");
       }
     } else {
-      res.json("not found");
+      res.status(404).json("User not found");
     }
   } catch (error) {
     res.status(422).json(error);
@@ -92,7 +92,7 @@ app.get("/profile", async (req, res) => {
 });
 
 app.post("/logout", async (req, res) => {
-  res.cookie("token", "").json(true);
+  res.cookie("token", "", { httpOnly: true }).json(true);
 });
 
 app.post("/upload-by-link", async (req, res) => {
@@ -112,7 +112,6 @@ app.post("/upload", photosMiddleware.array("photos", 20), async (req, res) => {
     const { path, originalname } = req.files[i];
     const parts = originalname.split(".");
     const ext = parts[parts.length - 1];
-
     const newPath = path + "." + ext;
     fs.renameSync(path, newPath);
     uploadedFiles.push(newPath.replace("uploads", ""));
