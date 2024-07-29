@@ -19,6 +19,7 @@ const jwtSecret = "jdkcdl675kjjjkkjcnkjdkj87678";
 app.use(express.json());
 app.use(CookieParser());
 app.use("/uploads", express.static(__dirname + "/uploads"));
+
 app.use(
   cors({
     credentials: true,
@@ -32,16 +33,15 @@ function getUserDataFromReq(req) {
   return new Promise((resolve, reject) => {
     jwt.verify(req.cookies.token, jwtSecret, {}, async (err, user) => {
       if (err) throw err;
-      resolve(user)
+      resolve(user);
     });
   });
 }
 
-//DMWJI1xfVIO67XvU
-//jaf2rmfCZsEsbiam
 app.get("/test", (req, res) => {
   res.json("test ok");
 });
+
 app.post("/register", async (req, res) => {
   const { name, email, password } = req.body;
   try {
@@ -55,26 +55,20 @@ app.post("/register", async (req, res) => {
     res.status(422).json(error);
   }
 });
+
 app.post("/login", async (req, res) => {
   const { email, password } = req.body;
   try {
-    const user = await UserModel.findOne({
-      email,
-    });
+    const user = await UserModel.findOne({ email });
     if (user) {
       const passOk = bcrypt.compareSync(password, user.password);
       if (passOk) {
-        jwt.sign(
-          { email: user.email, id: user._id },
-          jwtSecret,
-          {},
-          (err, token) => {
-            if (err) throw err;
-            res.cookie("token", token).json(user);
-          }
-        );
+        jwt.sign({ email: user.email, id: user._id }, jwtSecret, {}, (err, token) => {
+          if (err) throw err;
+          res.cookie("token", token).json(user);
+        });
       } else {
-        res.status(422).json("paasword not correct!");
+        res.status(422).json("password not correct!");
       }
     } else {
       res.json("not found");
@@ -83,6 +77,7 @@ app.post("/login", async (req, res) => {
     res.status(422).json(error);
   }
 });
+
 app.get("/profile", async (req, res) => {
   const { token } = req.cookies;
   if (token) {
@@ -109,6 +104,7 @@ app.post("/upload-by-link", async (req, res) => {
   });
   res.json(newName);
 });
+
 const photosMiddleware = multer({ dest: "uploads/" });
 app.post("/upload", photosMiddleware.array("photos", 20), async (req, res) => {
   const uploadedFiles = [];
@@ -126,18 +122,7 @@ app.post("/upload", photosMiddleware.array("photos", 20), async (req, res) => {
 
 app.post("/places", async (req, res) => {
   const { token } = req.cookies;
-  const {
-    title,
-    address,
-    addedPhotos,
-    description,
-    perks,
-    extraInfo,
-    checkIn,
-    checkOut,
-    maxGuest,
-    price,
-  } = req.body;
+  const { title, address, addedPhotos, description, perks, extraInfo, checkIn, checkOut, maxGuest, price } = req.body;
   jwt.verify(token, jwtSecret, {}, async (err, user) => {
     if (err) throw err;
     const placeDoc = await Place.create({
@@ -156,34 +141,24 @@ app.post("/places", async (req, res) => {
     res.json(placeDoc);
   });
 });
+
 app.get("/user-places", async (req, res) => {
   const { token } = req.cookies;
-
   jwt.verify(token, jwtSecret, {}, async (err, user) => {
     if (err) throw err;
     const { id } = user;
     res.json(await Place.find({ owner: id }));
   });
 });
+
 app.get("/places/:id", async (req, res) => {
   const { id } = req.params;
   res.json(await Place.findById(id));
 });
+
 app.put("/places", async (req, res) => {
   const { token } = req.cookies;
-  const {
-    id,
-    title,
-    address,
-    addedPhotos,
-    description,
-    perks,
-    extraInfo,
-    checkIn,
-    checkOut,
-    maxGuest,
-    price,
-  } = req.body;
+  const { id, title, address, addedPhotos, description, perks, extraInfo, checkIn, checkOut, maxGuest, price } = req.body;
   jwt.verify(token, jwtSecret, {}, async (err, user) => {
     if (err) throw err;
     const placeDoc = await Place.findById(id);
@@ -205,17 +180,17 @@ app.put("/places", async (req, res) => {
     res.json("ok");
   });
 });
+
 app.get("/places", async (req, res) => {
   res.json(await Place.find());
 });
 
 app.post("/bookings", async (req, res) => {
   const userData = await getUserDataFromReq(req);
-  const { placeId, checkIn, checkOut, numberOfGuests, name, phone, price } =
-    req.body;
+  const { placeId, checkIn, checkOut, numberOfGuests, name, phone, price } = req.body;
   const bookingDoc = await Booking.create({
     placeId,
-    user:userData.id,
+    user: userData.id,
     checkIn,
     checkOut,
     numberOfGuests,
@@ -226,10 +201,11 @@ app.post("/bookings", async (req, res) => {
   res.json(bookingDoc);
 });
 
-
-
 app.get("/bookings", async (req, res) => {
   const userData = await getUserDataFromReq(req);
-  res.json(await Booking.find({user:userData.id}).populate('placeId'))
+  res.json(await Booking.find({ user: userData.id }).populate("placeId"));
 });
-app.listen(4000);
+
+app.listen(4000, () => {
+  console.log("Server is running on port 4000");
+});
